@@ -20,7 +20,7 @@ marker_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
 param_markers = aruco.DetectorParameters()
 
 # Load your image
-image_path = 'distance_check/Store/cap1.jpg'  # Replace with your image path
+image_path = 'distance_check/Store/untitled7.png'  # Replace with your image path
 frame = cv.imread(image_path)
 
 if frame is not None:
@@ -72,6 +72,7 @@ if frame is not None:
                 2,
                 cv.LINE_AA,
             )
+
     cv.imshow("frame", frame)
     cv.waitKey(0)  # Wait indefinitely until any key is pressed
     cv.destroyAllWindows()
