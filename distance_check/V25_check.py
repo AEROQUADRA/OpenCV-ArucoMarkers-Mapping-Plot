@@ -203,7 +203,7 @@ def print_marker_grid(grid):
 
 def main():
     # Change this to your image path
-    image_path = 'distance_check/Store/p3.jpg'
+    image_path = 'distance_check/Store/p9.jpg'
     original_image = cv2.imread(image_path)
 
     # Find ArUco-like markers and apply perspective transformation
