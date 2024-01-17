@@ -4,12 +4,26 @@ import matplotlib.pyplot as plt
 from cv2 import aruco
 import os
 
+# Load calibration data
+calib_data_path = os.path.join(os.path.dirname(__file__), 'calib_data', 'calibration_data.npz')
+calib_data = np.load(calib_data_path)
+cam_mat = calib_data["cameraMatrix"]
+dist_coef = calib_data["distCoeffs"]
+r_vectors = calib_data["rvecs"]
+t_vectors = calib_data["tvecs"]
+
+MARKER_SIZE = 5  # centimeters (measure your printed marker size)
+marker_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
+param_markers = aruco.DetectorParameters()
+
+
 # Function to find ArUco-like markers
-
-
 def find_aruco_like_markers(image):
     global relevant_corner
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Undistort the image using camera calibration data
+    undistorted_image = cv2.undistort(gray, cam_mat, dist_coef)
 
     # Define the dictionary for ArUco marker detection
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
@@ -26,14 +40,14 @@ def find_aruco_like_markers(image):
 
     # Detect ArUco markers
     corners, ids, _ = cv2.aruco.detectMarkers(
-        gray, aruco_dict, parameters=aruco_params)
+        undistorted_image, aruco_dict, parameters=aruco_params)
 
     # Use detected ArUco markers if available
     if ids is not None:
         aruco_like_contours = [c.reshape(-1, 2) for c in corners]
     else:
         _, binary = cv2.threshold(
-            gray, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+            undistorted_image, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         contours, _ = cv2.findContours(
             binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -95,8 +109,8 @@ def find_aruco_like_markers(image):
 def compute_centroid(corners):
     M = cv2.moments(corners)
     if M['m00'] == 0:
-        return (0, 0)
-    return (int(M['m10'] / M['m00']), int(M['m01'] / M['m00']))
+        return 0, 0
+    return int(M['m10'] / M['m00']), int(M['m01'] / M['m00'])
 
 
 def sort_corners(corners):
@@ -133,6 +147,7 @@ def detect_aruco_markers(image):
         gray, aruco_dict, parameters=aruco_params)
     return corners, ids
 
+
 # Function to plot markers on a chart
 
 
@@ -167,7 +182,7 @@ def create_marker_grid(corners, ids):
 
     # Determine the approximate number of rows and columns
     row_thresh = max(centroids, key=lambda c: c[1])[
-        1] * 0.1  # Adjust the row threshold as needed
+                     1] * 0.1  # Adjust the row threshold as needed
     rows = []
     current_row = []
     last_y = sorted_centroids[0][0][1]
@@ -193,6 +208,7 @@ def create_marker_grid(corners, ids):
 
     return grid
 
+
 # Function to print the grid
 
 
@@ -200,14 +216,20 @@ def print_marker_grid(grid):
     for row in grid:
         print(' '.join(row))
 
+
 # Main function
 
 
 def main():
+
     # Change this to your image path
     image_path = os.path.join(os.path.dirname(__file__), 'Store', 'tr3.jpg')
 
     original_image = cv2.imread(image_path)
+
+    # Find ArUco-like markers and apply perspective transformation
+    corners_coordinates, closest_contours = find_aruco_like_markers(
+        original_image, cam_mat, dist_coef)
 
     # Find ArUco-like markers and apply perspective transformation
     corners_coordinates, closest_contours = find_aruco_like_markers(
