@@ -2,6 +2,14 @@ import cv2 as cv
 from cv2 import aruco
 import numpy as np
 import matplotlib.pyplot as plt
+from picamera2 import Picamera2
+
+picam2 = Picamera2()
+picam2.preview_configuration.main.size = (800,800)
+picam2.preview_configuration.main.format = "RGB888"
+picam2.preview_configuration.align()
+picam2.configure("preview")
+picam2.start()
 
 # Load calibration data
 calib_data_path = "calib_data/calibration_data.npz"
@@ -30,15 +38,14 @@ def plot_markers_on_graph(x_vals, y_vals, marker_ids):
     plt.show()
 
 
-cap = cv.VideoCapture(0)
 
 plot_active = False
 x_values, y_values = [], []
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+  
+    frame = picam2.capture_array()
+    
 
     height, width = frame.shape[:2]
     cv.line(frame, (int(width / 2) - 10, int(height / 2)),
@@ -52,6 +59,8 @@ while True:
     marker_corners, marker_IDs, _ = aruco.detectMarkers(
         gray_frame, marker_dict, parameters=param_markers
     )
+
+    distance = 0.0  # Default distance if no markers detected
 
     if marker_corners:
         rVec, tVec, _ = aruco.estimatePoseSingleMarkers(
@@ -87,7 +96,7 @@ while True:
             )
             cv.putText(
                 frame,
-                f"x:{round(tVec[i][0][0],1)} y: {round(tVec[i][0][1],1)} ",
+                f"x:{round(tVec[i][0][0], 1)} y: {round(tVec[i][0][1], 1)} ",
                 bottom_right,
                 cv.FONT_HERSHEY_PLAIN,
                 1.0,
@@ -95,6 +104,9 @@ while True:
                 2,
                 cv.LINE_AA,
             )
+
+    else:
+        print("No markers detected")
 
     cv.imshow("frame", frame)
     key = cv.waitKey(1)
@@ -117,5 +129,5 @@ while True:
     if key == ord("q"):
         break
 
-cap.release()
+frame.release()
 cv.destroyAllWindows()
