@@ -3,6 +3,9 @@ from cv2 import aruco
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+print("0")
+
 # Load calibration data
 calib_data_path = "calib_data/calibration_data.npz"
 calib_data = np.load(calib_data_path)
@@ -14,6 +17,11 @@ t_vectors = calib_data["tvecs"]
 MARKER_SIZE = 5  # centimeters (measure your printed marker size)
 marker_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
 param_markers = aruco.DetectorParameters()
+
+
+print("1")
+
+print("plot_markers_on_graph start")
 
 
 def plot_markers_on_graph(x_vals, y_vals, marker_ids):
@@ -28,14 +36,20 @@ def plot_markers_on_graph(x_vals, y_vals, marker_ids):
         print(f"Marker ID: {txt}, X: {x_vals[i]}, Y: {y_vals[i]}")
     plt.grid()
     plt.show()
+    print("plot_markers_on_graph inside end")
 
+
+print("plot_markers_on_graph end")
 
 cap = cv.VideoCapture(0)
 
 plot_active = False
 x_values, y_values = [], []
 
+print("video cam started")
+
 while True:
+    print("while loop started")
     ret, frame = cap.read()
     if not ret:
         break
@@ -85,7 +99,7 @@ while True:
                        2,
                        cv.LINE_AA,
                        )
-            cv.putText(frame, f"x:{round(tVec[i][0][0],1)} y: {round(tVec[i][0][1],1)} ",
+            cv.putText(frame, f"x:{round(tVec[i][0][0], 1)} y: {round(tVec[i][0][1], 1)} ",
                        bottom_right,
                        cv.FONT_HERSHEY_PLAIN,
                        1.0,

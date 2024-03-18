@@ -1,5 +1,14 @@
 import cv2 as cv
 import os
+from picamera2 import Picamera2
+
+picam2 = Picamera2()
+picam2.preview_configuration.main.size = (800,800)
+picam2.preview_configuration.main.format = "RGB888"
+picam2.preview_configuration.align()
+picam2.configure("preview")
+picam2.start()
+
 
 Chess_Board_Dimensions = (9, 6)
 
@@ -29,10 +38,11 @@ def detect_checker_board(image, grayImage, criteria, boardDimension):
     return image, ret
 
 
-cap = cv.VideoCapture(0)
+
 
 while True:
-    _, frame = cap.read()
+  
+    frame = picam2.capture_array()
     copyFrame = frame.copy()
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
@@ -65,7 +75,7 @@ while True:
 
         print(f"saved image number {n}")
         n += 1  # the image counter: incrementing
-cap.release()
+
 cv.destroyAllWindows()
 
 print("Total saved Images:", n)

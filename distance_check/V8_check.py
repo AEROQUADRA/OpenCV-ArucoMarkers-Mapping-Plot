@@ -1,7 +1,94 @@
 import cv2 as cv
 from cv2 import aruco
 import numpy as np
-import matplotlib.pyplot as plt
+from picamera2 import Picamera2
+import RPi.GPIO as GPIO
+from gpiozero import PWMOutputDevice, DigitalOutputDevice
+import time
+import curses
+
+# Motor A, Left Side GPIO CONSTANTS
+PWM_DRIVE_LEFT = 12       # ENA - H-Bridge enable pin
+FORWARD_LEFT_PIN = 20      # IN1 - Forward Drive
+REVERSE_LEFT_PIN = 16      # IN2 - Reverse Drive
+
+# Motor B, Right Side GPIO CONSTANTS
+PWM_DRIVE_RIGHT = 13       # ENB - H-Bridge enable pin
+FORWARD_RIGHT_PIN = 26     # IN1 - Forward Drive
+REVERSE_RIGHT_PIN = 21      # IN2 - Reverse Drive
+
+# Initialize motor objects
+driveLeft = PWMOutputDevice(PWM_DRIVE_LEFT)
+driveRight = PWMOutputDevice(PWM_DRIVE_RIGHT)
+forwardLeft = DigitalOutputDevice(FORWARD_LEFT_PIN)
+reverseLeft = DigitalOutputDevice(REVERSE_LEFT_PIN)
+forwardRight = DigitalOutputDevice(FORWARD_RIGHT_PIN)
+reverseRight = DigitalOutputDevice(REVERSE_RIGHT_PIN)
+
+# Initialize time variables
+prev_time = time.time()
+
+# Initialize GPIO
+GPIO.setmode(GPIO.BCM)
+
+# Cleanup GPIO on program exit
+
+
+def cleanup_gpio():
+    GPIO.cleanup()
+
+
+def allStop():
+    forwardLeft.off()
+    reverseLeft.off()
+    forwardRight.off()
+    reverseRight.off()
+    driveLeft.value = 0
+    driveRight.value = 0
+
+
+def forwardDrive(speed_left, speed_right):
+    forwardLeft.on()
+    reverseLeft.off()
+    forwardRight.on()
+    reverseRight.off()
+    driveLeft.value = speed_left
+    driveRight.value = speed_right
+
+
+def reverseDrive(speed_left, speed_right):
+    forwardLeft.off()
+    reverseLeft.on()
+    forwardRight.off()
+    reverseRight.on()
+    driveLeft.value = speed_left
+    driveRight.value = speed_right
+
+
+def spinLeft(speed_left, speed_right):
+    forwardLeft.off()
+    reverseLeft.on()
+    forwardRight.on()
+    reverseRight.off()
+    driveLeft.value = speed_left
+    driveRight.value = speed_right
+
+
+def spinRight(speed_left, speed_right):
+    forwardLeft.on()
+    reverseLeft.off()
+    forwardRight.off()
+    reverseRight.on()
+    driveLeft.value = speed_left
+    driveRight.value = speed_right
+
+
+picam2 = Picamera2()
+picam2.preview_configuration.main.size = (800, 800)
+picam2.preview_configuration.main.format = "RGB888"
+picam2.preview_configuration.align()
+picam2.configure("preview")
+picam2.start()
 
 # Load calibration data
 calib_data_path = "calib_data/calibration_data.npz"
@@ -16,53 +103,39 @@ marker_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
 param_markers = aruco.DetectorParameters()
 
 
-def plot_markers_on_graph(x_vals, y_vals, marker_ids):
-    plt.figure()
-    plt.scatter(x_vals, y_vals, marker='o', color='red')
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-    plt.title('Markers Plotted on Graph')
-    for i, txt in enumerate(marker_ids):
-        plt.annotate(f"ID: {txt}\n({x_vals[i]}, {y_vals[i]})",
-                     (x_vals[i], y_vals[i]), textcoords="offset points", xytext=(5, 5), ha='center')
-        print(f"Marker ID: {txt}, X: {x_vals[i]}, Y: {y_vals[i]}")
-    plt.grid()
-    plt.show()
+def arucoDetect():
+    while True:
+        frame = picam2.capture_array()
 
+        # Rotate the frame 180 degrees
+        frame = cv.rotate(frame, cv.ROTATE_180)
 
-cap = cv.VideoCapture(0)
+        # Convert the frame to grayscale
+        gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-plot_active = False
-x_values, y_values = [], []
+        height, width = gray_frame.shape[:2]
+        cv.line(gray_frame, (int(width / 2) - 10, int(height / 2)),
+                (int(width / 2) + 10, int(height / 2)), (255, 0, 0), 2)
+        cv.line(gray_frame, (int(width / 2), int(height / 2) - 10),
+                (int(width / 2), int(height / 2) + 10), (255, 0, 0), 2)
+        cv.putText(gray_frame, "0,0", (int(width / 2) + 5, int(height / 2) - 5),
+                   cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    height, width = frame.shape[:2]
-    cv.line(frame, (int(width / 2) - 10, int(height / 2)),
-            (int(width / 2) + 10, int(height / 2)), (255, 0, 0), 2)
-    cv.line(frame, (int(width / 2), int(height / 2) - 10),
-            (int(width / 2), int(height / 2) + 10), (255, 0, 0), 2)
-    cv.putText(frame, "0,0", (int(width / 2) + 5, int(height / 2) - 5),
-               cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-
-    gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    marker_corners, marker_IDs, _ = aruco.detectMarkers(
-        gray_frame, marker_dict, parameters=param_markers
-    )
-
-    if marker_corners:
-        rVec, tVec, _ = aruco.estimatePoseSingleMarkers(
-            marker_corners, MARKER_SIZE, cam_mat, dist_coef
+        marker_corners, marker_IDs, _ = aruco.detectMarkers(
+            gray_frame, marker_dict, parameters=param_markers
         )
-        total_markers = range(0, marker_IDs.size)
 
-        for ids, corners, i in zip(marker_IDs, marker_corners, total_markers):
+        if marker_corners:
+            rVec, tVec, _ = aruco.estimatePoseSingleMarkers(
+                marker_corners, MARKER_SIZE, cam_mat, dist_coef
+            )
+
+            # Assuming only one marker is detected
+            ids, corners, i = marker_IDs[0], marker_corners[0], 0
+
             cv.polylines(
-                frame, [corners.astype(np.int32)], True, (0,
-                                                          255, 255), 4, cv.LINE_AA
+                gray_frame, [corners.astype(np.int32)], True, (0,
+                                                               255, 255), 4, cv.LINE_AA
             )
             corners = corners.reshape(4, 2)
             corners = corners.astype(int)
@@ -74,10 +147,10 @@ while True:
             )
 
             cv.drawFrameAxes(
-                frame, cam_mat, dist_coef, rVec[i], tVec[i], MARKER_SIZE * 0.6
+                gray_frame, cam_mat, dist_coef, rVec[i], tVec[i], MARKER_SIZE * 0.6
             )
 
-            cv.putText(frame, f"id: {ids[0]} Dist: {round(distance, 2)}",
+            cv.putText(gray_frame, f"id: {ids[0]} Dist: {round(distance, 2)}",
                        top_right,
                        cv.FONT_HERSHEY_PLAIN,
                        1.3,
@@ -85,7 +158,7 @@ while True:
                        2,
                        cv.LINE_AA,
                        )
-            cv.putText(frame, f"x:{round(tVec[i][0][0],1)} y: {round(tVec[i][0][1],1)} ",
+            cv.putText(gray_frame, f"x:{round(tVec[i][0][0], 1)} y: {round(tVec[i][0][1], 1)} ",
                        bottom_right,
                        cv.FONT_HERSHEY_PLAIN,
                        1.0,
@@ -96,7 +169,7 @@ while True:
 
             rMat, _ = cv.Rodrigues(rVec[i])
             angles = cv.RQDecomp3x3(rMat)[0]
-            cv.putText(frame, f"Roll: {round(angles[0], 2)} Pitch: {round(angles[1], 2)} Yaw: {round(angles[2], 2)}",
+            cv.putText(gray_frame, f"Roll: {round(angles[0], 2)} Pitch: {round(angles[1], 2)} Yaw: {round(angles[2], 2)}",
                        (bottom_right[0], bottom_right[1] + 30),
                        cv.FONT_HERSHEY_PLAIN,
                        1.0,
@@ -105,26 +178,79 @@ while True:
                        cv.LINE_AA,
                        )
 
-    cv.imshow("frame", frame)
-    key = cv.waitKey(1)
+            detectedId = ids[0]
 
-    if key == ord('s'):
-        if not plot_active:
-            captured_frame = frame.copy()
-            x_values = [round(tVec[i][0][0], 1)
-                        for i in range(len(marker_IDs))]
-            y_values = [round(tVec[i][0][1], 1)
-                        for i in range(len(marker_IDs))]
-            # Pass marker IDs for display
-            plot_markers_on_graph(x_values, y_values, marker_IDs.flatten())
-            plot_active = True
+            # Output the distance to the detected marker
+
+            cv.destroyAllWindows()
+            return distance, detectedId
+
+        cv.imshow("gray_frame", gray_frame)
+        key = cv.waitKey(1)
+
+        if key == ord("q"):
+            break
+
+
+def main(win):
+
+    # Call the function and unpack the returned values
+    distance, detectedId = arucoDetect()
+
+    global prev_time
+    # win.clear()
+    win.keypad(1)
+
+    # Main speed
+    speedMain = 0.3
+    # Adjust these values for the desired speeds
+    forward_speed_left = speedMain
+    forward_speed_right = speedMain
+    reverse_speed_left = speedMain
+    reverse_speed_right = speedMain
+    turn_left_speed_left = speedMain
+    turn_left_speed_right = speedMain
+    turn_right_speed_left = speedMain
+    turn_right_speed_right = speedMain
+
+    print(f"Distance to marker {detectedId}: {distance}")
+
+    start_time = time.time()
+    while time.time() - start_time < distance/10:
+        forwardDrive(forward_speed_left, forward_speed_right)
+        print(f"Approching ID {detectedId} in {distance} cm \n")
+        win.refresh()
+
+    allStop()
+
+    while True:
+        current_time = time.time()
+        time_elapsed = current_time - prev_time
+
+        key = win.getch()
+        if key == curses.KEY_UP:
+            forwardDrive(forward_speed_left, forward_speed_right)
+            win.addstr("Forward")
+        elif key == curses.KEY_DOWN:
+            reverseDrive(reverse_speed_left, reverse_speed_right)
+            win.addstr("Reverse")
+        elif key == curses.KEY_LEFT:
+            spinLeft(turn_left_speed_left, turn_left_speed_right)
+            win.addstr("Spin Left")
+        elif key == curses.KEY_RIGHT:
+            spinRight(turn_right_speed_left, turn_right_speed_right)
+            win.addstr("Spin Right")
         else:
-            plt.close()
-            x_values, y_values = [], []
-            plot_active = False
+            allStop()
+            win.addstr("Stop")
 
-    if key == ord("q"):
-        break
+        win.refresh()
+        prev_time = current_time
 
-cap.release()
-cv.destroyAllWindows()
+
+# Run the main function with GPIO cleanup on exit
+if __name__ == "__main__":
+    try:
+        curses.wrapper(main)
+    finally:
+        cleanup_gpio()
