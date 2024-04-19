@@ -5,13 +5,22 @@ import curses
 
 # Motor A, Left Side GPIO CONSTANTS
 PWM_DRIVE_LEFT = 12  # ENA - H-Bridge enable pin
+<<<<<<< Updated upstream
 FORWARD_LEFT_PIN = 26 # IN1 - Forward Drive
+=======
+FORWARD_LEFT_PIN = 26  # IN1 - Forward Drive
+>>>>>>> Stashed changes
 REVERSE_LEFT_PIN = 19  # IN2 - Reverse Drive
 
 # Motor B, Right Side GPIO CONSTANTS
 PWM_DRIVE_RIGHT = 13  # ENB - H-Bridge enable pin
+<<<<<<< Updated upstream
 FORWARD_RIGHT_PIN = 21 # IN1 - Forward Drive
 REVERSE_RIGHT_PIN = 20 # IN2 - Reverse Drive
+=======
+FORWARD_RIGHT_PIN = 21  # IN1 - Forward Drive
+REVERSE_RIGHT_PIN = 20  # IN2 - Reverse Drive
+>>>>>>> Stashed changes
 
 # Initialize motor objects
 driveLeft = PWMOutputDevice(PWM_DRIVE_LEFT)

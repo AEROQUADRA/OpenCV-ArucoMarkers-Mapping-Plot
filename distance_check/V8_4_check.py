@@ -6,10 +6,7 @@ import RPi.GPIO as GPIO
 from gpiozero import PWMOutputDevice, DigitalOutputDevice
 from time import time, sleep
 import math
-<<<<<<< Updated upstream
 import py_qmc5883l
-=======
->>>>>>> Stashed changes
 import curses
 
 
@@ -35,13 +32,10 @@ reverseLeft = DigitalOutputDevice(REVERSE_LEFT_PIN)
 forwardRight = DigitalOutputDevice(FORWARD_RIGHT_PIN)
 reverseRight = DigitalOutputDevice(REVERSE_RIGHT_PIN)
 
-<<<<<<< Updated upstream
 sensor = py_qmc5883l.QMC5883L()
 sensor.calibration = [[1.0256545432028572, -0.013013085106172594, 289.7145364429366],
                       [-0.01301308510617258, 1.0066007951356402, 879.0513837979042], [0.0, 0.0, 1.0]]
 
-=======
->>>>>>> Stashed changes
 # Initialize time variables
 prev_time = time()
 
@@ -171,7 +165,6 @@ def spinRight(speed_left, speed_right):
     driveRight.value = speed_right
 
 
-<<<<<<< Updated upstream
 def get_heading():
     bearing = sensor.get_bearing()
     full_value_bearing = int(bearing)
@@ -243,8 +236,6 @@ def point_south_west(rotation_speed, threshold, start_heading):
     point_direction(rotation_speed, desired_heading, threshold)
 
 
-=======
->>>>>>> Stashed changes
 def detect_aruco_marker(picam2, calib_data_path="calib_data/calibration_data.npz"):
     # Load calibration data
     calib_data = np.load(calib_data_path)
@@ -342,11 +333,7 @@ def detect_aruco_marker(picam2, calib_data_path="calib_data/calibration_data.npz
 
                     return ids[0], distance
 
-<<<<<<< Updated upstream
         cv.imshow("gray_frame", gray_frame)
-=======
-        # cv.imshow("gray_frame", gray_frame)
->>>>>>> Stashed changes
         key = cv.waitKey(1)
 
         if key == ord("q"):
@@ -370,11 +357,7 @@ def calculate_runTime(speed_mm_per_second, marker_distance):
 
 def motorController(marker_distance, marker_id, speedMain):
     wheel_diameter_mm = 44
-<<<<<<< Updated upstream
     wheel_rpm = 300
-=======
-    wheel_rpm = 230
->>>>>>> Stashed changes
 
     # Calculate the speed
     speed_mm_per_second = calculate_speed(wheel_diameter_mm, wheel_rpm)
@@ -399,7 +382,6 @@ def motorController(marker_distance, marker_id, speedMain):
 
 def main(stdscr):
     # Main speed
-<<<<<<< Updated upstream
     speedMain = 0.5
     rotation_speed = 0.5
     # Define a threshold for heading proximity
@@ -407,11 +389,6 @@ def main(stdscr):
 
     # Capture the starting heading
     start_heading = get_heading()
-=======
-    speedMain = 0.3
-    rotation_speed = 0.5
-    rotation_time_per45 = 0.16
->>>>>>> Stashed changes
 
     picam2 = Picamera2()
     picam2.preview_configuration.main.size = (800, 800)
@@ -430,7 +407,6 @@ def main(stdscr):
         print("Detected marker: id={} distance={:.2f}".format(
             marker_id, marker_distance))
 
-<<<<<<< Updated upstream
         if marker_id == 1:
             point_east(rotation_speed, threshold, start_heading)
         elif marker_id == 2:
@@ -447,38 +423,6 @@ def main(stdscr):
             point_north(rotation_speed, threshold, start_heading)
         elif marker_id == 8:
             point_north_east(rotation_speed, threshold, start_heading)
-=======
-        if marker_id == 1:  # East
-            pass
-        elif marker_id == 2:  # South-East
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 1)
-            forceBrake()
-        elif marker_id == 3:  # South
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 2)
-            forceBrake()
-        elif marker_id == 4:  # South-West
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 3)
-            forceBrake()
-        elif marker_id == 5:  # West
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 4)
-            forceBrake()
-        elif marker_id == 6:  # North-West
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 5)
-            forceBrake()
-        elif marker_id == 7:  # North
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 6)
-            forceBrake()
-        elif marker_id == 8:  # North-East
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 7)
-            forceBrake()
->>>>>>> Stashed changes
         else:
             break
 

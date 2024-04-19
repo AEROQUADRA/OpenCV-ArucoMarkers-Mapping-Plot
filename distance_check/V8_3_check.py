@@ -6,10 +6,6 @@ import RPi.GPIO as GPIO
 from gpiozero import PWMOutputDevice, DigitalOutputDevice
 from time import time, sleep
 import math
-<<<<<<< Updated upstream
-import py_qmc5883l
-=======
->>>>>>> Stashed changes
 import curses
 
 
@@ -35,13 +31,7 @@ reverseLeft = DigitalOutputDevice(REVERSE_LEFT_PIN)
 forwardRight = DigitalOutputDevice(FORWARD_RIGHT_PIN)
 reverseRight = DigitalOutputDevice(REVERSE_RIGHT_PIN)
 
-<<<<<<< Updated upstream
-sensor = py_qmc5883l.QMC5883L()
-sensor.calibration = [[1.0256545432028572, -0.013013085106172594, 289.7145364429366],
-                      [-0.01301308510617258, 1.0066007951356402, 879.0513837979042], [0.0, 0.0, 1.0]]
 
-=======
->>>>>>> Stashed changes
 # Initialize time variables
 prev_time = time()
 
@@ -171,80 +161,6 @@ def spinRight(speed_left, speed_right):
     driveRight.value = speed_right
 
 
-<<<<<<< Updated upstream
-def get_heading():
-    bearing = sensor.get_bearing()
-    full_value_bearing = int(bearing)
-    return full_value_bearing
-
-
-def spin_to_heading(speed, desired_heading, threshold):
-    while True:
-        current_heading = get_heading()
-        if current_heading is not None:
-            if (current_heading < (desired_heading - threshold) % 360 or
-                    current_heading > (desired_heading + threshold) % 360):
-                # Determine the direction to spin
-                if (current_heading - desired_heading + 180) % 360 < 180:
-                    # Spin left
-                    spinLeft(speed, speed)
-                else:
-                    # Spin right
-                    spinRight(speed, speed)
-            else:
-                break
-        else:
-            print("Error: Unable to get current heading")
-            break
-
-
-def point_direction(rotation_speed, desired_heading, threshold):
-    spin_to_heading(rotation_speed, desired_heading, threshold)
-    forceBrake()
-
-
-def point_north(rotation_speed, threshold, start_heading):
-    desired_heading = (start_heading - 90) % 360
-    point_direction(rotation_speed, desired_heading, threshold)
-
-
-def point_east(rotation_speed, threshold, start_heading):
-    desired_heading = (start_heading - 0) % 360
-    point_direction(rotation_speed, desired_heading, threshold)
-
-
-def point_south(rotation_speed, threshold, start_heading):
-    desired_heading = (start_heading + 90) % 360
-    point_direction(rotation_speed, desired_heading, threshold)
-
-
-def point_west(rotation_speed, threshold, start_heading):
-    desired_heading = (start_heading - 180) % 360
-    point_direction(rotation_speed, desired_heading, threshold)
-
-
-def point_north_east(rotation_speed, threshold, start_heading):
-    desired_heading = (start_heading - 45) % 360
-    point_direction(rotation_speed, desired_heading, threshold)
-
-
-def point_south_east(rotation_speed, threshold, start_heading):
-    desired_heading = (start_heading + 45) % 360
-    point_direction(rotation_speed, desired_heading, threshold)
-
-
-def point_north_west(rotation_speed, threshold, start_heading):
-    desired_heading = (start_heading - 135) % 360
-    point_direction(rotation_speed, desired_heading, threshold)
-
-
-def point_south_west(rotation_speed, threshold, start_heading):
-    desired_heading = (start_heading + 135) % 360
-    point_direction(rotation_speed, desired_heading, threshold)
-
-
-=======
->>>>>>> Stashed changes
 def detect_aruco_marker(picam2, calib_data_path="calib_data/calibration_data.npz"):
     # Load calibration data
     calib_data = np.load(calib_data_path)
@@ -277,6 +193,8 @@ def detect_aruco_marker(picam2, calib_data_path="calib_data/calibration_data.npz
         marker_corners, marker_IDs, _ = aruco.detectMarkers(
             gray_frame, marker_dict, parameters=param_markers
         )
+
+        tVec = None  # Initialize tVec variable
 
         if marker_corners:
             # Filter markers within the desired ID range (0-8)
@@ -336,17 +254,9 @@ def detect_aruco_marker(picam2, calib_data_path="calib_data/calibration_data.npz
                                cv.LINE_AA,
                                )
 
-                    # Output the detected marker information
-                    # print("Detected marker: id={} distance={:.2f}".format(
-                    #     ids[0], distance))
+                    return ids[0], distance, tVec
 
-                    return ids[0], distance
-
-<<<<<<< Updated upstream
-        cv.imshow("gray_frame", gray_frame)
-=======
         # cv.imshow("gray_frame", gray_frame)
->>>>>>> Stashed changes
         key = cv.waitKey(1)
 
         if key == ord("q"):
@@ -370,11 +280,7 @@ def calculate_runTime(speed_mm_per_second, marker_distance):
 
 def motorController(marker_distance, marker_id, speedMain):
     wheel_diameter_mm = 44
-<<<<<<< Updated upstream
-    wheel_rpm = 300
-=======
-    wheel_rpm = 230
->>>>>>> Stashed changes
+    wheel_rpm = 250
 
     # Calculate the speed
     speed_mm_per_second = calculate_speed(wheel_diameter_mm, wheel_rpm)
@@ -397,21 +303,20 @@ def motorController(marker_distance, marker_id, speedMain):
         allStop()
 
 
+def calculate_hypotenuse_and_angle(side1, side2):
+    # Calculate hypotenuse
+    hypotenuse = math.sqrt(side1**2 + side2**2)
+
+    # Calculate angle opposite side2
+    angle_opposite_side2 = math.degrees(math.acos(side1 / hypotenuse))
+
+    return hypotenuse, angle_opposite_side2
+
+
 def main(stdscr):
     # Main speed
-<<<<<<< Updated upstream
-    speedMain = 0.5
-    rotation_speed = 0.5
-    # Define a threshold for heading proximity
-    threshold = 5
-
-    # Capture the starting heading
-    start_heading = get_heading()
-=======
     speedMain = 0.3
-    rotation_speed = 0.5
-    rotation_time_per45 = 0.16
->>>>>>> Stashed changes
+    rotation_speed = 0.25
 
     picam2 = Picamera2()
     picam2.preview_configuration.main.size = (800, 800)
@@ -421,66 +326,46 @@ def main(stdscr):
     picam2.start()
 
     while True:
-        marker_id, marker_distance_in_cm = detect_aruco_marker(picam2)
-        marker_distance = marker_distance_in_cm*10
-        double_beep(0.1)
+        result = detect_aruco_marker(picam2)
+        if result is not None:
+            marker_id, marker_distance_in_cm, tVec = result
+            marker_distance = marker_distance_in_cm * 10
+            double_beep(0.1)
 
-        motorController(marker_distance, marker_id, speedMain)
+            print("Detected marker: id={}, distance={:.2f}, x={}, y={}".format(
+                marker_id, marker_distance, tVec[0][0][0], tVec[0][0][1]))
 
-        print("Detected marker: id={} distance={:.2f}".format(
-            marker_id, marker_distance))
+            hypotenuse, angle = calculate_hypotenuse_and_angle(
+                marker_distance,  tVec[0][0][0])
+            print("Hypotenuse length:", hypotenuse, "cm")
+            print("Angle opposite the side with length 40 cm:", angle, "degrees")
 
-<<<<<<< Updated upstream
-        if marker_id == 1:
-            point_east(rotation_speed, threshold, start_heading)
-        elif marker_id == 2:
-            point_south_east(rotation_speed, threshold, start_heading)
-        elif marker_id == 3:
-            point_south(rotation_speed, threshold, start_heading)
-        elif marker_id == 4:
-            point_south_west(rotation_speed, threshold, start_heading)
-        elif marker_id == 5:
-            point_west(rotation_speed, threshold, start_heading)
-        elif marker_id == 6:
-            point_north_west(rotation_speed, threshold, start_heading)
-        elif marker_id == 7:
-            point_north(rotation_speed, threshold, start_heading)
-        elif marker_id == 8:
-            point_north_east(rotation_speed, threshold, start_heading)
-=======
-        if marker_id == 1:  # East
-            pass
-        elif marker_id == 2:  # South-East
+            time_per_degree = 0.3
+
+            if tVec[0][0][0] > 0:
+                spinLeft(rotation_speed, rotation_speed)
+                sleep(angle * time_per_degree)
+            elif tVec[0][0][0] < 0:
+                spinRight(rotation_speed, rotation_speed)
+                sleep(angle * time_per_degree)
+            else:
+                pass
+
+            motorController(hypotenuse, marker_id, speedMain)
+
+            if marker_id == 0:
+                break
+
+            # Spin left until another marker is detected
             spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 1)
-            forceBrake()
-        elif marker_id == 3:  # South
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 2)
-            forceBrake()
-        elif marker_id == 4:  # South-West
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 3)
-            forceBrake()
-        elif marker_id == 5:  # West
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 4)
-            forceBrake()
-        elif marker_id == 6:  # North-West
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 5)
-            forceBrake()
-        elif marker_id == 7:  # North
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 6)
-            forceBrake()
-        elif marker_id == 8:  # North-East
-            spinLeft(rotation_speed, rotation_speed)
-            sleep(rotation_time_per45 * 7)
-            forceBrake()
->>>>>>> Stashed changes
-        else:
-            break
+            while True:
+                result = detect_aruco_marker(picam2)
+                if result is not None:
+                    marker_id, marker_distance_in_cm, _ = result
+                    if marker_id != 0:
+                        beep(0.1)
+                        break
+            allStop()
 
     tri_beep(0.2)
 
